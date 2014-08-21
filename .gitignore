@@ -1,0 +1,11 @@
+# object files
+*.o
+
+# vim swapfiles
+.*.sw?
+
+# output files
+*.out
+
+# vimtemplates directory
+.vimtemplates
