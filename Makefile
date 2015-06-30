@@ -2,15 +2,12 @@ CC      = gcc
 CFLAGS  = -g -Wall --std=c99
 LDFLAGS =
 
-PARTS   = common data
+PARTS   = common
 OBJS    = $(PARTS:%=%.o)
 
-NAME    =
+NAME    = protodump
 
 all:
-
-libcalg/%:
-	@${MAKE} -C libcalg $*
 
 test/%: test/%.c
 	@${MAKE} -C test $*
@@ -21,5 +18,4 @@ test/%: test/%.c
 
 clean:
 	rm -f ${OBJS} ${NAME}
-	${MAKE} -C libcalg clean
 	${MAKE} -C test clean
