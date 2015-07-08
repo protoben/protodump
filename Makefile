@@ -1,21 +1,19 @@
 include Defs.mk
 
-NAME    = protodump
-PARTS   = common json
-OBJS    = $(PARTS:%=src/%.o)
-
 .PHONY: all test clean
 
-all:
-	@echo ${CFLAGS}
+all: ${OBJS}
 
-test:
+test: ${OBJS}
 	${MAKE} -C test
 
 %.o: %.c %.h
-	@echo cc $@
-	@${CC} -c ${CFLAGS} ${CPPFLAGS} $< ${LDFLAGS}
+	@echo CC $@
+	@${CC} -c ${CFLAGS} ${CPPFLAGS} -o $@ $< ${LDFLAGS}
 
 clean:
-	rm -f ${OBJS} ${NAME}
+	@for test in ${OBJS} ${NAME}; do \
+	  echo RM $(patsubst %,test/%,$$test); \
+	  rm -f $$test; \
+	done
 	${MAKE} -C test clean
