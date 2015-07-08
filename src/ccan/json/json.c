@@ -335,7 +335,7 @@ static bool parse_array     (const char **sp, JsonNode        **out);
 static bool parse_object    (const char **sp, JsonNode        **out);
 static bool parse_hex16     (const char **sp, uint16_t         *out);
 
-static bool expect_literal  (const char **sp, const char *str);
+bool expect_literal  (const char **sp, const char *str);
 static void skip_space      (const char **sp);
 
 static void emit_value              (SB *out, const JsonNode *node);
@@ -1249,7 +1249,7 @@ static bool number_is_valid(const char *num)
 	return (parse_number(&num, NULL) && *num == '\0');
 }
 
-static bool expect_literal(const char **sp, const char *str)
+bool expect_literal(const char **sp, const char *str)
 {
 	const char *s = *sp;
 	
