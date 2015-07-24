@@ -7,9 +7,6 @@
 # output files
 *.out
 
-# vimtemplates directory
-.vimtemplates
-
 # test executables
 test/ccan/json/run-construction
 test/ccan/json/run-decode-encode
