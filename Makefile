@@ -14,6 +14,6 @@ test: ${OBJS}
 clean:
 	@for test in ${OBJS} ${NAME}; do \
 	  echo RM $(patsubst %,test/%,$$test); \
-	  rm -f $$test; \
+	  ${RM} $$test; \
 	done
 	${MAKE} -C test clean
