@@ -9,3 +9,10 @@
 
 # vimtemplates directory
 .vimtemplates
+
+# test executables
+test/ccan/json/run-construction
+test/ccan/json/run-decode-encode
+test/ccan/json/run-stringify
+test/ccan/json/run-validate
+test/ccan/tap/run
