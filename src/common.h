@@ -25,8 +25,8 @@
  *
  */
 
-#ifndef RESTD_COMMON_H
-#define RESTD_COMMON_H
+#ifndef PROTODUMP_COMMON_H
+#define PROTODUMP_COMMON_H
 
 #include <assert.h>
 #include <errno.h>
