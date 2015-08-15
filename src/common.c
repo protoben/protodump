@@ -27,8 +27,7 @@
 
 #include "common.h"
 
-void plog(char *fmt, ...)
-{
+void plog(char *fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
@@ -37,8 +36,7 @@ void plog(char *fmt, ...)
   va_end(ap);
 }
 
-void vlog(char *oldfmt, va_list oldap, char *prepend, ...)
-{
+void vlog(char *oldfmt, va_list oldap, char *prepend, ...) {
   va_list ap;
 
   fputs(NAME ": ", stderr);
@@ -51,8 +49,7 @@ void vlog(char *oldfmt, va_list oldap, char *prepend, ...)
   vfprintf(stderr, oldfmt, oldap);
 }
 
-void die(char *fmt, ...)
-{
+void die(char *fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
@@ -62,8 +59,7 @@ void die(char *fmt, ...)
   exit(EXIT_FAILURE);
 }
 
-void *malloc_or_die(size_t sz)
-{
+void *malloc_or_die(size_t sz) {
   void *ret;
 
   errno = 0;
@@ -73,8 +69,7 @@ void *malloc_or_die(size_t sz)
   return ret;
 }
 
-void *realloc_or_die(void *p, size_t sz)
-{
+void *realloc_or_die(void *p, size_t sz) {
   void *ret;
 
   errno = 0;
@@ -84,8 +79,7 @@ void *realloc_or_die(void *p, size_t sz)
   return ret;
 }
 
-FILE *open_or_die(const char *filename, const char *mode)
-{
+FILE *open_or_die(const char *filename, const char *mode) {
   FILE *fp;
 
   errno = 0;
@@ -94,28 +88,4 @@ FILE *open_or_die(const char *filename, const char *mode)
     die("fopen(\"%s\", \"%s\"): %s\n", filename, mode, strerror(errno));
 
   return fp;
-}
-
-char *newnstr(const char *src, size_t len)
-{
-  char *dst;
-
-  assert(len > 0);
-
-  dst = malloc_or_die(len + 1);
-  memcpy(dst, src, len);
-  dst[len] = '\0';
-
-  return dst;
-}
-
-char *newstr(const char *src)
-{
-  return newnstr(src, strlen(src));
-}
-
-char *newdstr(const char *src, char delim)
-{
-  char *end = strchr(src, delim);
-  return (end) ? newnstr(src, end - src) : newstr(src);
 }

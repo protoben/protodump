@@ -47,8 +47,5 @@ void die(char *fmt, ...);
 void *malloc_or_die(size_t sz);
 void *realloc_or_die(void *p, size_t sz);
 FILE *open_or_die(const char *filename, const char *mode);
-char *newnstr(const char *src, size_t len);
-char *newstr(const char *src);
-char *newdstr(const char *src, char delim);
 
 #endif
