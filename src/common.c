@@ -55,6 +55,7 @@ void die(char *fmt, ...) {
   va_start(ap, fmt);
   vlog(fmt, ap, "FATAL: ");
   va_end(ap);
+  putc('\n', stderr);
 
   exit(EXIT_FAILURE);
 }
