@@ -49,7 +49,7 @@ static bool regex_matches_or_is_null(const char *regex, const char *test) {
 }
 
 void dev_list(const char *regex) {
-  int err;
+  int err, idx;
   pcap_if_t *devs = NULL, *cur;
   char errbuf[PCAP_ERRBUF_SIZE] = {0};
   bool dev_found = false;
@@ -58,9 +58,10 @@ void dev_list(const char *regex) {
   if(err)
     die(0, "%s", errbuf);
 
-  for(cur = devs; cur; cur = cur->next)
+  for(idx = 0, cur = devs; cur; cur = cur->next, ++idx)
     if(regex_matches_or_is_null(regex, cur->name)) {
-      printf("%-18s%s%s%s\n", cur->name
+      printf("%3d: ", idx);
+      printf("%-20s%s%s%s\n", cur->name
                             , cur->flags & PCAP_IF_LOOPBACK ? "[loopback]" : ""
                             , cur->flags & PCAP_IF_UP ? "[up]" : "[down]"
                             , cur->flags & PCAP_IF_RUNNING ? "[running]" : "");
@@ -74,7 +75,7 @@ void dev_list(const char *regex) {
 }
 
 void dev_info(const char *regex) {
-  int err;
+  int err, idx;
   pcap_if_t *devs = NULL, *cur;
   pcap_addr_t *addr;
   char errbuf[PCAP_ERRBUF_SIZE], addrbuf[1024];
@@ -84,32 +85,34 @@ void dev_info(const char *regex) {
   if(err)
     die(0, "%s", errbuf);
 
-  for(cur = devs; cur; cur = cur->next)
+  for(idx = 0, cur = devs; cur; cur = cur->next, ++idx)
     if(regex_matches_or_is_null(regex, cur->name)) {
       dev_found = true;
-      printf("%-18s%s%s%s\n", cur->name
+      printf("%3d: ", idx);
+      printf("%-20s%s%s%s\n", cur->name
                             , cur->flags & PCAP_IF_LOOPBACK ? "[loopback]" : ""
                             , cur->flags & PCAP_IF_UP ? "[up]" : "[down]"
                             , cur->flags & PCAP_IF_RUNNING ? "[running]" : "");
 
       if(cur->description)
-        printf("\tDescription: %s\n", cur->description);
+        printf("     %s\n", cur->description);
 
       for(addr = cur->addresses; addr; addr = addr->next) {
         if(addr->netmask)
-          printf("\tAddress: %s/%d\n",
+          printf("     %s/%d ",
                  addr_to_string(addr->addr, addrbuf, sizeof addrbuf),
                  netmask_to_string(addr->netmask));
         else
-          printf("\tAddress: %s\n",
+          printf("     %s ",
                  addr_to_string(addr->addr, addrbuf, sizeof addrbuf));
 
         if(addr->broadaddr)
-          printf("\t\tBroadcast: %s\n",
+          printf("brd %s",
                  addr_to_string(addr->broadaddr, addrbuf, sizeof addrbuf));
         if(addr->dstaddr)
-          printf("\t\tDestination: %s\n",
+          printf("dst %s",
                  addr_to_string(addr->dstaddr, addrbuf, sizeof addrbuf));
+        puts("");
       }
     }
 
