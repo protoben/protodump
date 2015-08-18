@@ -1,4 +1,5 @@
 # object files
+protodump
 *.o
 
 # vim swapfiles
