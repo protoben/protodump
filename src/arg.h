@@ -1,9 +1,7 @@
 /*
- * common.h
+ * arg.h
  *
- * The MIT License (MIT)
- * 
- * Copyright (c) 2014 Ben Hamlin
+ * Copyright (c) 2014 Ben Hamlin <protob3n@gmail.com>
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,28 +21,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
+ *                       __            __                    
+ *     ____  _________  / /_____  ____/ /_  ______ ___  ____ 
+ *    / __ \/ ___/ __ \/ __/ __ \/ __  / / / / __ `__ \/ __ \
+ *   / /_/ / /  / /_/ / /_/ /_/ / /_/ / /_/ / / / / / / /_/ /
+ *  / .___/_/   \____/\__/\____/\__,_/\__,_/_/ /_/ /_/ .___/ 
+ * /_/                                              /_/      
+ *
  */
 
-#ifndef PROTODUMP_COMMON_H
-#define PROTODUMP_COMMON_H
+#ifndef PROTODUMP_ARG_H
+#define PROTODUMP_ARG_H
 
-#include <errno.h>
-#include <regex.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+#include <stdarg.h>
 #include <unistd.h>
+#include <regex.h>
 
-#define NAME   "protodump"
-#define VER    "0.1"
-#define AUTHOR "Ben Hamlin"
+#include "common.h"
 
-/* External functions */
-void die(int err, char *fmt, ...);
-void *malloc_or_die(size_t sz);
-void *realloc_or_die(void *p, size_t sz);
-FILE *fopen_or_die(const char *filename, const char *mode);
-void regcomp_or_die(regex_t *preg, const char *regex, int cflags);
+enum argtype {
+  ARG_NONE,
+  ARG_REGEX,
+  ARG_STRING,
+  ARG_INTEGER,
+  ARG_IPV4,
+  ARG_IPV6,
+};
+
+struct flag {
+  char name;
+  char *description;
+  enum argtype arg;
+  bool arg_optional;
+  int action;
+};
+
+char *make_optstr(struct flag *flaglist, int nflags);
+int getflag(int argc, char **argv, struct flag *flaglist, int nflags,
+            const char *optstr, char **parg);
+void print_flag_usage(FILE *fp, struct flag *flaglist, int nflags);
 
 #endif

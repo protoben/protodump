@@ -1,10 +1,10 @@
 CC	= gcc
-CFLAGS	= -Wall --std=c99
-CPPFLAGS=
-LDFLAGS	=
+CFLAGS	= -Wall --std=c99 -g
+CPPFLAGS= -D_DEFAULT_SOURCE
+LDFLAGS	= -lpcap
 
 NAME    = protodump
-PARTS   = common ccan/json/json ccan/tap/tap
+PARTS   = common capture netutil arg ccan/json/json ccan/tap/tap
 OBJS    = $(PARTS:%=src/%.o)
 
 DEBUG	= 1

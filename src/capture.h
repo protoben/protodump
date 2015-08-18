@@ -1,5 +1,5 @@
 /*
- * common.c
+ * capture.h
  *
  * The MIT License (MIT)
  * 
@@ -25,67 +25,30 @@
  *
  */
 
+#ifndef PROTODUMP_CAPTURE_H
+#define PROTODUMP_CAPTURE_H
+
+#include <pcap/pcap.h>
+#include <regex.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "common.h"
+#include "netutil.h"
 
-void die(int err, char *fmt, ...) {
-  va_list ap;
-  char buf[BUFSIZ];
+/**
+ * Print devices available for capture in human-readable format.
+ * 
+ * regex: If this is non-null, only list devices that match the given regex. 
+ */
+void dev_list(const char *regex);
 
-  va_start(ap, fmt);
-  vsnprintf(buf, sizeof buf, fmt, ap);
-  va_end(ap);
+/**
+ * Print verbose information about devices available for capture.
+ * 
+ * regex: If this is non-null, only list devices that match the given regex. 
+ */
+void dev_info(const char *regex);
 
-  if(err) {
-    errno = err;
-    perror(buf);
-  } else {
-    fprintf(stderr, "%s\n", buf);
-  }
-
-  exit(EXIT_FAILURE);
-}
-
-void *malloc_or_die(size_t sz) {
-  void *ret;
-
-  errno = 0;
-  ret = malloc(sz);
-  if(!ret)
-    die(errno, "malloc(%lu)", sz);
-
-  return ret;
-}
-
-void *realloc_or_die(void *p, size_t sz) {
-  void *ret;
-
-  errno = 0;
-  ret = realloc(p, sz);
-  if(!ret)
-    die(errno, "realloc(%#lx, %lu)", p, sz);
-
-  return ret;
-}
-
-FILE *fopen_or_die(const char *filename, const char *mode) {
-  FILE *fp;
-
-  errno = 0;
-  fp = fopen(filename, mode);
-  if(!fp)
-    die(errno, "fopen(\"%s\", \"%s\")", filename, mode);
-
-  return fp;
-}
-
-void regcomp_or_die(regex_t *preg, const char *regex, int cflags) {
-  char errbuf[BUFSIZ];
-  int err;
-
-  cflags |= REG_EXTENDED;
-  err = regcomp(preg, regex, cflags);
-  if(err) {
-    regerror(err, preg, errbuf, sizeof errbuf);
-    die(0, "regcomp(\"%s\", %#x): %s", regex, cflags, errbuf);
-  }
-}
+#endif

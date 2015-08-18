@@ -2,7 +2,11 @@ include Defs.mk
 
 .PHONY: all test clean
 
-all: ${OBJS}
+all: ${NAME}
+
+${NAME}: src/main.c ${OBJS}
+	@echo CC $@
+	@${CC} ${CFLAGS} ${CPPFLAGS} -o $@ $^ ${LDFLAGS}
 
 test: ${OBJS}
 	${MAKE} -C test
