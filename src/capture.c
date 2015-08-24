@@ -105,7 +105,6 @@ void dev_info(const char *regex) {
         else
           printf("     %s ",
                  addr_to_string(addr->addr, addrbuf, sizeof addrbuf));
-
         if(addr->broadaddr)
           printf("brd %s",
                  addr_to_string(addr->broadaddr, addrbuf, sizeof addrbuf));
@@ -114,6 +113,47 @@ void dev_info(const char *regex) {
                  addr_to_string(addr->dstaddr, addrbuf, sizeof addrbuf));
         puts("");
       }
+    }
+
+  if(!dev_found)
+    fprintf(stderr, "No matching devices found\n");
+
+  pcap_freealldevs(devs);
+}
+
+void dev_datalinks(const char *regex) {
+  int err, idx, nlinktypes, i, *linktypes;
+  pcap_if_t *devs = NULL, *cur;
+  char errbuf[PCAP_ERRBUF_SIZE];
+  bool dev_found = false;
+  pcap_t *pcap;
+
+  err = pcap_findalldevs(&devs, errbuf);
+  if(err)
+    die(0, "%s", errbuf);
+
+  for(idx = 0, cur = devs; cur; cur = cur->next, ++idx)
+    if(regex_matches_or_is_null(regex, cur->name)) {
+      dev_found = true;
+      printf("%3d: ", idx);
+      printf("%-20s\n", cur->name);
+
+      pcap = pcap_create(cur->name, errbuf);
+      if(!pcap)
+        continue;
+
+      err = pcap_activate(pcap);
+      if(err)
+        continue;
+
+      nlinktypes = pcap_list_datalinks(pcap, &linktypes);
+      for(i = 0; i < nlinktypes; ++i)
+        printf("     %-30s %s\n"
+               , pcap_datalink_val_to_name(linktypes[i])
+               , pcap_datalink_val_to_description(linktypes[i]));
+
+      pcap_free_datalinks(linktypes);
+      pcap_close(pcap);
     }
 
   if(!dev_found)

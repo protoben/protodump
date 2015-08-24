@@ -43,7 +43,8 @@ enum acttypes {
   ACT_HELP,
   ACT_ERR,
   ACT_DEV_LIST,
-  ACT_DEV_INFO
+  ACT_DEV_INFO,
+  ACT_DEV_DLINKS,
 };
 
 #define FLAGCOUNT (sizeof(flaglist) / sizeof(*flaglist))
@@ -59,6 +60,12 @@ struct flag flaglist[] = {
     .arg = ARG_REGEX,
     .arg_optional = true,
     .action = ACT_DEV_INFO
+  },
+  { .name = 'D',
+    .description = "Print datalink types supported on available devices",
+    .arg = ARG_REGEX,
+    .arg_optional = true,
+    .action = ACT_DEV_DLINKS
   },
   { .name = 'h',
     .description = "Print this message",
@@ -88,6 +95,7 @@ int main(int argc, char **argv) {
         return EXIT_SUCCESS;
       case ACT_DEV_LIST:
       case ACT_DEV_INFO:
+      case ACT_DEV_DLINKS:
         opts.action = a;
         opts.dev = arg;
         break;
@@ -101,6 +109,9 @@ int main(int argc, char **argv) {
       break;
     case ACT_DEV_INFO:
       dev_info(opts.dev);
+      break;
+    case ACT_DEV_DLINKS:
+      dev_datalinks(opts.dev);
       break;
     default:
       print_flag_usage(stderr, flaglist, FLAGCOUNT);

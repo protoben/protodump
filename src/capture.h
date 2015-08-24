@@ -51,4 +51,11 @@ void dev_list(const char *regex);
  */
 void dev_info(const char *regex);
 
+/**
+ * Print datalink types supported on available interfaces.
+ * 
+ * regex: If this is non-null, only list devices that match the given regex. 
+ */
+void dev_datalinks(const char *regex);
+
 #endif
