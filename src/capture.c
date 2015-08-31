@@ -48,6 +48,72 @@ static bool regex_matches_or_is_null(const char *regex, const char *test) {
   return match;
 }
 
+static bool check_capture(char *errbuf, const char *dev) {
+  int err;
+  pcap_t *handle;
+
+  handle = pcap_create(dev, errbuf);
+  if(!handle)
+    goto fail;
+
+  err = pcap_activate(handle);
+  if(err && err != PCAP_WARNING)
+    goto fail;
+
+  pcap_close(handle);
+  return true;
+
+fail:
+  strncpy(errbuf, pcap_geterr(handle), PCAP_ERRBUF_SIZE);
+  pcap_close(handle);
+  return false;
+}
+
+static bool check_promisc(const char *dev) {
+  char junk[PCAP_ERRBUF_SIZE];
+  int err;
+  pcap_t *handle;
+
+  handle = pcap_create(dev, junk);
+  if(!handle)
+    goto fail;
+
+  err = pcap_set_promisc(handle, 1);
+  if(err)
+    /* Should never error: pcap_set_promisc() only errors if handle is active. */
+    die(0, "DEBUG: Reached unreachable condition at %s:%lu\n", __FILE__, __LINE__);
+
+  err = pcap_activate(handle);
+  if(err && err != PCAP_WARNING)
+    goto fail;
+
+  pcap_close(handle);
+  return true;
+
+fail:
+  pcap_close(handle);
+  return false;
+}
+
+static bool check_rfmon(const char *dev) {
+  char junk[PCAP_ERRBUF_SIZE];
+  pcap_t *handle;
+
+  handle = pcap_create(dev, junk);
+  if(!handle)
+    goto fail;
+
+  if(pcap_can_set_rfmon(handle) != 1)
+    goto fail;
+
+  pcap_close(handle);
+  return true;
+
+fail:
+  pcap_close(handle);
+  return false;
+}
+
 void dev_list(const char *regex) {
   int err, idx;
   pcap_if_t *devs = NULL, *cur;
@@ -80,6 +146,7 @@ void dev_info(const char *regex) {
   pcap_addr_t *addr;
   char errbuf[PCAP_ERRBUF_SIZE], addrbuf[1024];
   bool dev_found = false;
+  bool rfmon_ok, promisc_ok, capture_ok;
 
   err = pcap_findalldevs(&devs, errbuf);
   if(err)
@@ -88,30 +155,43 @@ void dev_info(const char *regex) {
   for(idx = 0, cur = devs; cur; cur = cur->next, ++idx)
     if(regex_matches_or_is_null(regex, cur->name)) {
       dev_found = true;
+
+      errbuf[0] = '\0';
+      capture_ok = check_capture(errbuf, cur->name);
+      rfmon_ok = capture_ok ? check_rfmon(cur->name) : false;
+      promisc_ok = capture_ok ? check_promisc(cur->name) : false;
+
       printf("%3d: ", idx);
-      printf("%-20s%s%s%s\n", cur->name
-                            , cur->flags & PCAP_IF_LOOPBACK ? "[loopback]" : ""
-                            , cur->flags & PCAP_IF_UP ? "[up]" : "[down]"
-                            , cur->flags & PCAP_IF_RUNNING ? "[running]" : "");
+      printf("%-20s%s%s%s%s%s%s\n", cur->name
+             , cur->flags & PCAP_IF_LOOPBACK ? "[loopback]"   : ""
+             , cur->flags & PCAP_IF_UP       ? "[up]"         : "[down]"
+             , cur->flags & PCAP_IF_RUNNING  ? "[running]"    : ""
+             , promisc_ok                    ? "[promisc_ok]" : ""
+             , rfmon_ok                      ? "[rfmon_ok]"   : ""
+             , capture_ok                    ? "[usable]"     : "[unusable]");
 
-      if(cur->description)
-        printf("     %s\n", cur->description);
+      if(opts.verbose) {
+        if(cur->description)
+          printf("     %s\n", cur->description);
+        if(errbuf[0])
+          printf("     %s\n", errbuf);
 
-      for(addr = cur->addresses; addr; addr = addr->next) {
-        if(addr->netmask)
-          printf("     %s/%d ",
-                 addr_to_string(addr->addr, addrbuf, sizeof addrbuf),
-                 netmask_to_string(addr->netmask));
-        else
-          printf("     %s ",
-                 addr_to_string(addr->addr, addrbuf, sizeof addrbuf));
-        if(addr->broadaddr)
-          printf("brd %s",
-                 addr_to_string(addr->broadaddr, addrbuf, sizeof addrbuf));
-        if(addr->dstaddr)
-          printf("dst %s",
-                 addr_to_string(addr->dstaddr, addrbuf, sizeof addrbuf));
-        puts("");
+        for(addr = cur->addresses; addr; addr = addr->next) {
+          if(addr->netmask)
+            printf("     %s/%d ",
+                   addr_to_string(addr->addr, addrbuf, sizeof addrbuf),
+                   netmask_to_string(addr->netmask));
+          else
+            printf("     %s ",
+                   addr_to_string(addr->addr, addrbuf, sizeof addrbuf));
+          if(addr->broadaddr)
+            printf("brd %s",
+                   addr_to_string(addr->broadaddr, addrbuf, sizeof addrbuf));
+          if(addr->dstaddr)
+            printf("dst %s",
+                   addr_to_string(addr->dstaddr, addrbuf, sizeof addrbuf));
+          puts("");
+        }
       }
     }
 
