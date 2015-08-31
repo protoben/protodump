@@ -39,7 +39,9 @@
 #include "netutil.h"
 
 /**
- * Print verbose information about devices available for capture.
+ * Print information about devices available for capture. If opts.verbose is
+ * false, just print device indices, device names, and a list of attributes.
+ * Otherwise, print verbose information (addresses, linktypes, timestamp types).
  * 
  * regex: If this is non-null, only list devices that match the given regex. 
  */
