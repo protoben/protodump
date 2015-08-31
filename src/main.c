@@ -44,35 +44,64 @@ enum acttypes {
   ACT_HELP,
   ACT_ERR,
   ACT_VERBOSE,
-  ACT_DEV_INFO,
+  ACT_DEV,
+  ACT_CAPFILE,
+  ACT_INFO,
+  ACT_CAPTURE,
+  ACT_REPLAY,
 };
 
 struct opts opts = {
   .action = 0,
   .dev = NULL,
+  .capfile = NULL,
   .verbose = false,
 };
 
 #define FLAGCOUNT (sizeof(flaglist) / sizeof(*flaglist))
 struct flag flaglist[] = {
   { .name = 'I',
-    .description = "Print verbose information about available devices",
-    .arg = ARG_REGEX,
-    .arg_optional = true,
+    .description = "Print information about available devices",
+    .arg = ARG_NONE,
     .mode = true,
-    .action = ACT_DEV_INFO
+    .mode_blacklist = "f",
+    .action = ACT_INFO
+  },
+  { .name = 'C',
+    .description = "Capture packets",
+    .arg = ARG_NONE,
+    .mode = true,
+    .mode_blacklist = NULL,
+    .action = ACT_CAPTURE
+  },
+  { .name = 'R',
+    .description = "Replay packets",
+    .arg = ARG_NONE,
+    .mode = true,
+    .mode_blacklist = NULL,
+    .action = ACT_REPLAY
+  },
+  { .name = 'f',
+    .description = "Specify capture file to capture to / replay from",
+    .arg = ARG_STRING,
+    .mode = false,
+    .action = ACT_CAPFILE
+  },
+  { .name = 'd',
+    .description = "Specify the device to capture/replay on by regex",
+    .arg = ARG_REGEX,
+    .mode = false,
+    .action = ACT_DEV
   },
   { .name = 'h',
     .description = "Print this message",
     .arg = ARG_NONE,
-    .arg_optional = false,
     .mode = false,
     .action = ACT_HELP
   },
   { .name = 'v',
     .description = "Increase the verbosity of the information printed",
     .arg = ARG_NONE,
-    .arg_optional = false,
     .mode = false,
     .action = ACT_VERBOSE
   },
@@ -81,6 +110,11 @@ struct flag flaglist[] = {
 int main(int argc, char **argv) {
   char *arg = NULL, *optstr = make_optstr(flaglist, FLAGCOUNT);
   int a;
+
+  if(!argv[1]) {
+    print_flag_usage(stdout, flaglist, FLAGCOUNT);
+    return EXIT_FAILURE;
+  }
 
   while((a = getflag(argc, argv, flaglist, FLAGCOUNT, optstr, &arg)) >= 0)
     switch((enum acttypes)a) {
@@ -91,17 +125,30 @@ int main(int argc, char **argv) {
       case ACT_VERBOSE:
         ++opts.verbose;
         break;
-      case ACT_DEV_INFO:
-        opts.action = a;
+      case ACT_DEV:
         opts.dev = arg;
+        break;
+      case ACT_CAPFILE:
+        opts.capfile = arg;
+        break;
+      case ACT_INFO:
+      case ACT_CAPTURE: /* Fallthrough */
+      case ACT_REPLAY:  /* Fallthrough */
+        opts.action = a;
         break;
       default:
         die(0, "DEBUG: getflag() returned an unknown value: '%c'", a);
     }
 
   switch((enum acttypes)opts.action) {
-    case ACT_DEV_INFO:
+    case ACT_INFO:
       dev_info(opts.dev);
+      break;
+    case ACT_CAPTURE:
+      die(0, "Capture not yet implemented");
+      break;
+    case ACT_REPLAY:
+      die(0, "Replay not yet implemented");
       break;
     default:
       print_flag_usage(stderr, flaglist, FLAGCOUNT);

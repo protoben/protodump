@@ -36,6 +36,7 @@
 struct opts {
   int action;
   char *dev;
+  char *capfile;
   bool verbose;
 };
 extern struct opts opts;

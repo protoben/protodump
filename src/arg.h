@@ -52,10 +52,10 @@ enum argtype {
 
 struct flag {
   char name;
-  char *description;
+  const char *description;
   enum argtype arg;
-  bool arg_optional;
   bool mode;
+  const char *mode_blacklist;
   int action;
 };
 

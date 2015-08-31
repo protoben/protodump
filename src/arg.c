@@ -58,9 +58,6 @@ char *make_optstr(struct flag *flaglist, int nflags) {
   static char optstr[BUFSIZ];
   int i, c = 0;
 
-  opterr = 0;
-
-  ADD_TO_BUF(optstr, ':', c, BUFSIZ);
   for(i = 0; i < nflags; ++i) {
     ADD_TO_BUF(optstr, flaglist[i].name, c, BUFSIZ);
     if(flaglist[i].arg != ARG_NONE)
@@ -104,22 +101,30 @@ int getflag(int argc, char **argv, struct flag *flaglist, int nflags,
             const char *optstr, char **parg) {
   struct  flag *cur;
   int i, c;
+  static bool mode_set = false;
 
   optarg = NULL;
   c = getopt(argc, argv, optstr);
-  if(c < 0)
-    return -1;
+  if(c < 0) {
+    if(!mode_set)
+      die(0, "At least one mode argument must be specified");
+    else
+      return -1;
+  }
 
   if(c == '?')
-    die(0, "Unknown flag '-%c'", optopt);
+    exit(EXIT_FAILURE);
 
   for(i = 0; i < nflags; ++i)
-    if(flaglist[i].name == ((c == ':') ? optopt : c))
+    if(flaglist[i].name == c)
       cur = &flaglist[i];
 
-  if(c == ':' && !cur->arg_optional)
-    die(0, "Flag '-%c' requires an argument of type %s",
-           optopt, argtype_names[cur->arg]);
+  if(cur->mode) {
+    if(mode_set)
+      die(0, "Only one mode argument may be specified");
+    else
+      mode_set = true;
+  }
 
   if(!arg_is_valid(cur, optarg))
     die(0, "Flag '-%c' requires an argument of type %s, not \"%s\"\n",
@@ -130,17 +135,46 @@ int getflag(int argc, char **argv, struct flag *flaglist, int nflags,
 }
 
 void print_flag_usage(FILE *fp, struct flag *flaglist, int nflags) {
-  int i;
+  int i, j, k, l;
+  struct flag *modes[nflags + 1], *opts[nflags + 1], *opts_wargs[nflags + 1];
+  char usage[] = "Usage:";
 
-  fprintf(fp, "Usage: %s ", NAME);
-  for(i = 0; i < nflags; ++i) {
-    fprintf(fp, "-%c ", flaglist[i].name);
+  for(i = j = k = l = 0; i < nflags; ++i)
+    if(flaglist[i].mode)
+      modes[j++] = &flaglist[i];
+    else if(flaglist[i].arg == ARG_NONE)
+      opts[k++] = &flaglist[i];
+    else
+      opts_wargs[l++] = &flaglist[i];
+  modes[j] = opts[k] = opts_wargs[l] = NULL;
 
-    if(flaglist[i].arg != ARG_NONE)
-      fprintf(fp, "<%s> ", argtype_names[flaglist[i].arg]);
+  for(i = 0; modes[i]; ++i) {
+    fprintf(fp, "%-7s%s -%c ", usage, NAME, modes[i]->name);
+    usage[0] = '\0';
+
+    for(j = 0; opts_wargs[j]; ++j)
+      if(!modes[i]->mode_blacklist
+         || !strchr(modes[i]->mode_blacklist, opts_wargs[j]->name))
+        fprintf(fp, "[-%c <%s>] ", opts_wargs[j]->name
+                                   , argtype_names[opts_wargs[j]->arg]);
+
+    if(opts[0]) {
+      fputs("[-", fp);
+      for(j = 0; opts[j]; ++j)
+        if(!modes[i]->mode_blacklist
+           || !strchr(modes[i]->mode_blacklist, opts[j]->name))
+          putc(opts[j]->name, fp);
+      putc(']', fp);
+    }
+
+    putc('\n', fp);
   }
-  putc('\n', fp);
 
-  for(i = 0; i < nflags; ++i)
-    fprintf(fp, "\t-%c\t%s\n", flaglist[i].name, flaglist[i].description);
+  putc('\n', fp);
+  for(i = 0; modes[i]; ++i)
+    fprintf(fp, "\t-%c\t%s\n", modes[i]->name, modes[i]->description);
+  for(i = 0; opts_wargs[i]; ++i)
+    fprintf(fp, "\t-%c\t%s\n", opts_wargs[i]->name, opts_wargs[i]->description);
+  for(i = 0; opts[i]; ++i)
+    fprintf(fp, "\t-%c\t%s\n", opts[i]->name, opts[i]->description);
 }
