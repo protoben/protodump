@@ -45,7 +45,6 @@ enum acttypes {
   ACT_ERR,
   ACT_VERBOSE,
   ACT_DEV_INFO,
-  ACT_DEV_DLINKS,
 };
 
 struct opts opts = {
@@ -62,13 +61,6 @@ struct flag flaglist[] = {
     .arg_optional = true,
     .mode = true,
     .action = ACT_DEV_INFO
-  },
-  { .name = 'D',
-    .description = "Print datalink types supported on available devices",
-    .arg = ARG_REGEX,
-    .arg_optional = true,
-    .mode = true,
-    .action = ACT_DEV_DLINKS
   },
   { .name = 'h',
     .description = "Print this message",
@@ -100,7 +92,6 @@ int main(int argc, char **argv) {
         ++opts.verbose;
         break;
       case ACT_DEV_INFO:
-      case ACT_DEV_DLINKS:
         opts.action = a;
         opts.dev = arg;
         break;
@@ -111,9 +102,6 @@ int main(int argc, char **argv) {
   switch((enum acttypes)opts.action) {
     case ACT_DEV_INFO:
       dev_info(opts.dev);
-      break;
-    case ACT_DEV_DLINKS:
-      dev_datalinks(opts.dev);
       break;
     default:
       print_flag_usage(stderr, flaglist, FLAGCOUNT);

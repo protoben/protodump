@@ -136,6 +136,53 @@ static void print_pcap_addrs(pcap_addr_t *addr) {
   }
 }
 
+static void print_datalinks(const char *dev) {
+  int *linktypes;
+  int err, i, nlinktypes;
+  char errbuf[PCAP_ERRBUF_SIZE];
+  pcap_t *handle;
+
+  handle = pcap_create(dev, errbuf);
+  if(!handle)
+    return;
+
+  err = pcap_activate(handle);
+  if(err)
+    return;
+
+  nlinktypes = pcap_list_datalinks(handle, &linktypes);
+  if(nlinktypes > 0)
+    puts("     Linktypes:");
+  for(i = 0; i < nlinktypes; ++i)
+    printf("       %-20s %s\n"
+           , pcap_datalink_val_to_name(linktypes[i])
+           , pcap_datalink_val_to_description(linktypes[i]));
+
+  pcap_free_datalinks(linktypes);
+  pcap_close(handle);
+}
+
+static void print_timestamp_types(const char *dev) {
+  int i, ntstypes;
+  char junk[PCAP_ERRBUF_SIZE];
+  int *tstypes;
+  pcap_t *handle;
+
+  handle = pcap_create(dev, junk);
+  if(!handle)
+    return;
+
+  ntstypes = pcap_list_tstamp_types(handle, &tstypes);
+  if(ntstypes > 0)
+    puts("     Timestamp types:");
+  for(i = 0; i < ntstypes; ++i)
+    printf("       %-20s %s\n", pcap_tstamp_type_val_to_name(tstypes[i]),
+                                pcap_tstamp_type_val_to_description(tstypes[i]));
+
+  pcap_free_tstamp_types(tstypes);
+  pcap_close(handle);
+}
+
 void dev_info(const char *regex) {
   int err, idx;
   pcap_if_t *devs = NULL, *cur;
@@ -157,7 +204,7 @@ void dev_info(const char *regex) {
       promisc_ok = capture_ok ? check_promisc(cur->name) : false;
 
       printf("%3d: ", idx);
-      printf("%-20s%s%s%s%s%s%s\n", cur->name
+      printf("%-22s %s%s%s%s%s%s\n", cur->name
              , cur->flags & PCAP_IF_LOOPBACK ? "[loopback]"   : ""
              , cur->flags & PCAP_IF_UP       ? "[up]"         : "[down]"
              , cur->flags & PCAP_IF_RUNNING  ? "[running]"    : ""
@@ -172,48 +219,9 @@ void dev_info(const char *regex) {
           printf("     %s\n", errbuf);
 
         print_pcap_addrs(cur->addresses);
+        print_datalinks(cur->name);
+        print_timestamp_types(cur->name);
       }
-    }
-
-  if(!dev_found)
-    fprintf(stderr, "No matching devices found\n");
-
-  pcap_freealldevs(devs);
-}
-
-void dev_datalinks(const char *regex) {
-  int err, idx, nlinktypes, i, *linktypes;
-  pcap_if_t *devs = NULL, *cur;
-  char errbuf[PCAP_ERRBUF_SIZE];
-  bool dev_found = false;
-  pcap_t *pcap;
-
-  err = pcap_findalldevs(&devs, errbuf);
-  if(err)
-    die(0, "%s", errbuf);
-
-  for(idx = 0, cur = devs; cur; cur = cur->next, ++idx)
-    if(regex_matches_or_is_null(regex, cur->name)) {
-      dev_found = true;
-      printf("%3d: ", idx);
-      printf("%-20s\n", cur->name);
-
-      pcap = pcap_create(cur->name, errbuf);
-      if(!pcap)
-        continue;
-
-      err = pcap_activate(pcap);
-      if(err)
-        continue;
-
-      nlinktypes = pcap_list_datalinks(pcap, &linktypes);
-      for(i = 0; i < nlinktypes; ++i)
-        printf("     %-30s %s\n"
-               , pcap_datalink_val_to_name(linktypes[i])
-               , pcap_datalink_val_to_description(linktypes[i]));
-
-      pcap_free_datalinks(linktypes);
-      pcap_close(pcap);
     }
 
   if(!dev_found)
