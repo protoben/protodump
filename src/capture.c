@@ -57,6 +57,8 @@ static bool check_capture(char *errbuf, const char *dev) {
     goto fail;
 
   err = pcap_activate(handle);
+  if(err)
+    strncpy(errbuf, pcap_geterr(handle), PCAP_ERRBUF_SIZE);
   if(err && err != PCAP_WARNING)
     goto fail;
 
@@ -64,7 +66,6 @@ static bool check_capture(char *errbuf, const char *dev) {
   return true;
 
 fail:
-  strncpy(errbuf, pcap_geterr(handle), PCAP_ERRBUF_SIZE);
   pcap_close(handle);
   return false;
 }
@@ -114,6 +115,27 @@ fail:
   return false;
 }
 
+static void print_pcap_addrs(pcap_addr_t *addr) {
+  char addrbuf[1024];
+
+  for(; addr; addr = addr->next) {
+    if(addr->netmask)
+      printf("     %s/%d ",
+             addr_to_string(addr->addr, addrbuf, sizeof addrbuf),
+             netmask_to_string(addr->netmask));
+    else
+      printf("     %s ",
+             addr_to_string(addr->addr, addrbuf, sizeof addrbuf));
+    if(addr->broadaddr)
+      printf("brd %s",
+             addr_to_string(addr->broadaddr, addrbuf, sizeof addrbuf));
+    if(addr->dstaddr)
+      printf("dst %s",
+             addr_to_string(addr->dstaddr, addrbuf, sizeof addrbuf));
+    puts("");
+  }
+}
+
 void dev_list(const char *regex) {
   int err, idx;
   pcap_if_t *devs = NULL, *cur;
@@ -143,8 +165,7 @@ void dev_list(const char *regex) {
 void dev_info(const char *regex) {
   int err, idx;
   pcap_if_t *devs = NULL, *cur;
-  pcap_addr_t *addr;
-  char errbuf[PCAP_ERRBUF_SIZE], addrbuf[1024];
+  char errbuf[PCAP_ERRBUF_SIZE];
   bool dev_found = false;
   bool rfmon_ok, promisc_ok, capture_ok;
 
@@ -176,22 +197,7 @@ void dev_info(const char *regex) {
         if(errbuf[0])
           printf("     %s\n", errbuf);
 
-        for(addr = cur->addresses; addr; addr = addr->next) {
-          if(addr->netmask)
-            printf("     %s/%d ",
-                   addr_to_string(addr->addr, addrbuf, sizeof addrbuf),
-                   netmask_to_string(addr->netmask));
-          else
-            printf("     %s ",
-                   addr_to_string(addr->addr, addrbuf, sizeof addrbuf));
-          if(addr->broadaddr)
-            printf("brd %s",
-                   addr_to_string(addr->broadaddr, addrbuf, sizeof addrbuf));
-          if(addr->dstaddr)
-            printf("dst %s",
-                   addr_to_string(addr->dstaddr, addrbuf, sizeof addrbuf));
-          puts("");
-        }
+        print_pcap_addrs(cur->addresses);
       }
     }
 
