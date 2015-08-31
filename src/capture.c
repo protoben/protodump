@@ -136,32 +136,6 @@ static void print_pcap_addrs(pcap_addr_t *addr) {
   }
 }
 
-void dev_list(const char *regex) {
-  int err, idx;
-  pcap_if_t *devs = NULL, *cur;
-  char errbuf[PCAP_ERRBUF_SIZE] = {0};
-  bool dev_found = false;
-
-  err = pcap_findalldevs(&devs, errbuf);
-  if(err)
-    die(0, "%s", errbuf);
-
-  for(idx = 0, cur = devs; cur; cur = cur->next, ++idx)
-    if(regex_matches_or_is_null(regex, cur->name)) {
-      printf("%3d: ", idx);
-      printf("%-20s%s%s%s\n", cur->name
-                            , cur->flags & PCAP_IF_LOOPBACK ? "[loopback]" : ""
-                            , cur->flags & PCAP_IF_UP ? "[up]" : "[down]"
-                            , cur->flags & PCAP_IF_RUNNING ? "[running]" : "");
-      dev_found = true;
-    }
-
-  if(!dev_found)
-    fprintf(stderr, "No matching devices found\n");
-
-  pcap_freealldevs(devs);
-}
-
 void dev_info(const char *regex) {
   int err, idx;
   pcap_if_t *devs = NULL, *cur;

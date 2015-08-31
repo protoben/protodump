@@ -44,7 +44,6 @@ enum acttypes {
   ACT_HELP,
   ACT_ERR,
   ACT_VERBOSE,
-  ACT_DEV_LIST,
   ACT_DEV_INFO,
   ACT_DEV_DLINKS,
 };
@@ -57,13 +56,6 @@ struct opts opts = {
 
 #define FLAGCOUNT (sizeof(flaglist) / sizeof(*flaglist))
 struct flag flaglist[] = {
-  { .name = 'L',
-    .description = "List devices available for capture",
-    .arg = ARG_REGEX,
-    .arg_optional = true,
-    .mode = true,
-    .action = ACT_DEV_LIST
-  },
   { .name = 'I',
     .description = "Print verbose information about available devices",
     .arg = ARG_REGEX,
@@ -107,7 +99,6 @@ int main(int argc, char **argv) {
       case ACT_VERBOSE:
         ++opts.verbose;
         break;
-      case ACT_DEV_LIST:
       case ACT_DEV_INFO:
       case ACT_DEV_DLINKS:
         opts.action = a;
@@ -118,9 +109,6 @@ int main(int argc, char **argv) {
     }
 
   switch((enum acttypes)opts.action) {
-    case ACT_DEV_LIST:
-      dev_list(opts.dev);
-      break;
     case ACT_DEV_INFO:
       dev_info(opts.dev);
       break;

@@ -39,13 +39,6 @@
 #include "netutil.h"
 
 /**
- * Print devices available for capture in human-readable format.
- * 
- * regex: If this is non-null, only list devices that match the given regex. 
- */
-void dev_list(const char *regex);
-
-/**
  * Print verbose information about devices available for capture.
  * 
  * regex: If this is non-null, only list devices that match the given regex. 
