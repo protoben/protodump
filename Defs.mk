@@ -4,8 +4,15 @@ CPPFLAGS= -D_DEFAULT_SOURCE
 LDFLAGS	= -lpcap
 
 NAME    = protodump
-PARTS   = common capture netutil arg ccan/json/json ccan/tap/tap
+
 OBJS    = $(PARTS:%=src/%.o)
+PARTS   = \
+          arg \
+          capture \
+          ccan/json/json \
+          ccan/tap/tap \
+          common \
+          netutil \
 
 DEBUG	= 1
 ifdef DEBUG

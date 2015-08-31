@@ -1,5 +1,5 @@
 /*
- * arg.h
+ * options.h
  *
  * Copyright (c) 2014 Ben Hamlin <protob3n@gmail.com>
  * 
@@ -30,38 +30,14 @@
  *
  */
 
-#ifndef PROTODUMP_ARG_H
-#define PROTODUMP_ARG_H
+#ifndef PROTODUMP_OPTIONS_H
+#define PROTODUMP_OPTIONS_H
 
-#include <string.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <regex.h>
-
-#include "common.h"
-
-enum argtype {
-  ARG_NONE,
-  ARG_REGEX,
-  ARG_STRING,
-  ARG_INTEGER,
-  ARG_IPV4,
-  ARG_IPV6,
-};
-
-struct flag {
-  char name;
-  char *description;
-  enum argtype arg;
-  bool arg_optional;
-  bool mode;
+struct opts {
   int action;
+  char *dev;
+  bool verbose;
 };
-
-char *make_optstr(struct flag *flaglist, int nflags);
-int getflag(int argc, char **argv, struct flag *flaglist, int nflags,
-            const char *optstr, char **parg);
-void print_flag_usage(FILE *fp, struct flag *flaglist, int nflags);
+extern struct opts opts;
 
 #endif

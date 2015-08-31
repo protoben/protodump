@@ -37,14 +37,22 @@
 #include "capture.h"
 #include "common.h"
 #include "netutil.h"
+#include "options.h"
 
 enum acttypes {
   ACT_NONE,
   ACT_HELP,
   ACT_ERR,
+  ACT_VERBOSE,
   ACT_DEV_LIST,
   ACT_DEV_INFO,
   ACT_DEV_DLINKS,
+};
+
+struct opts opts = {
+  .action = 0,
+  .dev = NULL,
+  .verbose = false,
 };
 
 #define FLAGCOUNT (sizeof(flaglist) / sizeof(*flaglist))
@@ -53,34 +61,37 @@ struct flag flaglist[] = {
     .description = "List devices available for capture",
     .arg = ARG_REGEX,
     .arg_optional = true,
+    .mode = true,
     .action = ACT_DEV_LIST
   },
   { .name = 'I',
     .description = "Print verbose information about available devices",
     .arg = ARG_REGEX,
     .arg_optional = true,
+    .mode = true,
     .action = ACT_DEV_INFO
   },
   { .name = 'D',
     .description = "Print datalink types supported on available devices",
     .arg = ARG_REGEX,
     .arg_optional = true,
+    .mode = true,
     .action = ACT_DEV_DLINKS
   },
   { .name = 'h',
     .description = "Print this message",
     .arg = ARG_NONE,
     .arg_optional = false,
+    .mode = false,
     .action = ACT_HELP
   },
-};
-
-struct {
-  enum acttypes action;
-  char *dev;
-} opts = {
-  .action = ACT_NONE,
-  .dev = NULL,
+  { .name = 'v',
+    .description = "Increase the verbosity of the information printed",
+    .arg = ARG_NONE,
+    .arg_optional = false,
+    .mode = false,
+    .action = ACT_VERBOSE
+  },
 };
 
 int main(int argc, char **argv) {
@@ -88,11 +99,14 @@ int main(int argc, char **argv) {
   int a;
 
   while((a = getflag(argc, argv, flaglist, FLAGCOUNT, optstr, &arg)) >= 0)
-    switch(a) {
+    switch((enum acttypes)a) {
       case ACT_NONE:
       case ACT_HELP:
         print_flag_usage(stdout, flaglist, FLAGCOUNT);
         return EXIT_SUCCESS;
+      case ACT_VERBOSE:
+        ++opts.verbose;
+        break;
       case ACT_DEV_LIST:
       case ACT_DEV_INFO:
       case ACT_DEV_DLINKS:
@@ -103,7 +117,7 @@ int main(int argc, char **argv) {
         die(0, "DEBUG: getflag() returned an unknown value: '%c'", a);
     }
 
-  switch(opts.action) {
+  switch((enum acttypes)opts.action) {
     case ACT_DEV_LIST:
       dev_list(opts.dev);
       break;
