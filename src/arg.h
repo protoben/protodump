@@ -33,11 +33,13 @@
 #ifndef PROTODUMP_ARG_H
 #define PROTODUMP_ARG_H
 
-#include <string.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <unistd.h>
+#include <sys/ioctl.h>
+#include <limits.h>
 #include <regex.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "common.h"
 
@@ -45,7 +47,7 @@ enum argtype {
   ARG_NONE,
   ARG_REGEX,
   ARG_STRING,
-  ARG_INTEGER,
+  ARG_POSINTEGER,
   ARG_IPV4,
   ARG_IPV6,
 };

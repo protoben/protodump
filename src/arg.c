@@ -36,16 +36,16 @@ const char *argtype_names[] = {
   "NONE",
   "REGEX",
   "STRING",
-  "INTEGER",
-  "IPv4 ADDRESS",
-  "IPv6 ADDRESS",
+  "POSITIVE_INTEGER",
+  "IPv4_ADDRESS",
+  "IPv6_ADDRESS",
 };
 
 /* Regexes for argument matching */
 #define DEC_NUMBER "(0|[1-9][0-9]*)"
 #define OCT_NUMBER "(0[0-7]*)"
 #define HEX_NUMBER "(0[xX][0-9a-fA-F]+)"
-#define ANY_NUMBER "(" DEC_NUMBER "|" OCT_NUMBER "|" HEX_NUMBER ")"
+#define POS_NUMBER "\\+?(" DEC_NUMBER "|" OCT_NUMBER "|" HEX_NUMBER ")"
 #define IPV4_OCTET "([0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])"
 #define IPV4_CIDR  "(/[0-2]?[0-9]|3[0-2])"
 #define IPV4_ADDR  "(" "(" IPV4_OCTET ".){3}" IPV4_OCTET "(" IPV4_CIDR ")?" ")"
@@ -86,8 +86,9 @@ static bool arg_is_valid(struct flag *pflag, char *arg) {
     case ARG_REGEX:
     case ARG_STRING:
       return true;
-    case ARG_INTEGER:
-      return reg_matches(ANY_NUMBER, arg);
+    case ARG_POSINTEGER:
+      return reg_matches(POS_NUMBER, arg)
+          && strtoul(arg, NULL, 0) <= INT_MAX;
     case ARG_IPV4:
       return reg_matches(IPV4_ADDR, arg);
     case ARG_IPV6:
@@ -95,6 +96,26 @@ static bool arg_is_valid(struct flag *pflag, char *arg) {
   }
 
   return false;
+}
+
+static void pretty_print(FILE *fp, char *prefix, char (*elements)[256]) {
+  struct winsize ws;
+  int cols = !ioctl(0, TIOCGWINSZ, &ws) ? ws.ws_col : 80;
+  int preflen = prefix ? strlen(prefix) : 0;
+  int i, linesize, len;
+
+  fputs(prefix, fp);
+  linesize = preflen;
+
+  for(i = 0; elements[i][0]; ++i) {
+    len = strlen(elements[i]);
+    if(len + preflen > cols || linesize > cols || len + linesize <= cols)
+      linesize += fprintf(fp, " %s", elements[i]);
+    else
+      linesize = fprintf(fp, "\n%*s%s", preflen + 1, "", elements[i]) - 1;
+  }
+
+  fputc('\n', fp);
 }
 
 int getflag(int argc, char **argv, struct flag *flaglist, int nflags,
@@ -137,7 +158,7 @@ int getflag(int argc, char **argv, struct flag *flaglist, int nflags,
 void print_flag_usage(FILE *fp, struct flag *flaglist, int nflags) {
   int i, j, k, l;
   struct flag *modes[nflags + 1], *opts[nflags + 1], *opts_wargs[nflags + 1];
-  char usage[] = "Usage:";
+  char usage[] = "Usage:", prefix[256], elements[256][256];
 
   for(i = j = k = l = 0; i < nflags; ++i)
     if(flaglist[i].mode)
@@ -148,26 +169,31 @@ void print_flag_usage(FILE *fp, struct flag *flaglist, int nflags) {
       opts_wargs[l++] = &flaglist[i];
   modes[j] = opts[k] = opts_wargs[l] = NULL;
 
-  for(i = 0; modes[i]; ++i) {
-    fprintf(fp, "%-7s%s -%c ", usage, NAME, modes[i]->name);
+  for(i = 0, k = 0; modes[i]; ++i, k = 0) {
+    snprintf(prefix, 256, "%-7s%s -%c", usage, NAME, modes[i]->name);
     usage[0] = '\0';
 
     for(j = 0; opts_wargs[j]; ++j)
       if(!modes[i]->mode_blacklist
          || !strchr(modes[i]->mode_blacklist, opts_wargs[j]->name))
-        fprintf(fp, "[-%c <%s>] ", opts_wargs[j]->name
-                                   , argtype_names[opts_wargs[j]->arg]);
+        snprintf(elements[k++], 256, "[-%c <%s>]"
+                                     , opts_wargs[j]->name
+                                     , argtype_names[opts_wargs[j]->arg]);
 
     if(opts[0]) {
-      fputs("[-", fp);
-      for(j = 0; opts[j]; ++j)
+      elements[k][0] = '[';
+      elements[k][1] = '-';
+      for(j = 0, l = 2; opts[j] && l < 254; ++j)
         if(!modes[i]->mode_blacklist
            || !strchr(modes[i]->mode_blacklist, opts[j]->name))
-          putc(opts[j]->name, fp);
-      putc(']', fp);
+          elements[k][l++] = opts[j]->name;
+      elements[k][l++] = ']';
+      elements[k][l] = '\0';
+      ++k;
     }
 
-    putc('\n', fp);
+    elements[k][0] = '\0';
+    pretty_print(fp, prefix, elements);
   }
 
   putc('\n', fp);
