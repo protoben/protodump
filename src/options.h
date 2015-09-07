@@ -33,12 +33,24 @@
 #ifndef PROTODUMP_OPTIONS_H
 #define PROTODUMP_OPTIONS_H
 
-struct opts {
+#include <stdbool.h>
+
+struct options {
   int action;
   char *dev;
-  char *capfile;
-  bool verbose;
+  char *capwrite;
+  char *capread;
+  char *jsonfile;
+  int verbose;
+  bool rfmon;
+  bool promisc;
+  int snaplen;
+  int read_timeout;
+  int buffer_size;
+  int tstamp_type;
+  bool tstamp_nano;
+  int linktype;
 };
-extern struct opts opts;
+extern struct options options;
 
 #endif

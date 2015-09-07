@@ -38,13 +38,27 @@
 #include "options.h"
 #include "netutil.h"
 
-/**
- * Print information about devices available for capture. If opts.verbose is
+/* Print information about devices available for capture. If opts.verbose is
  * false, just print device indices, device names, and a list of attributes.
  * Otherwise, print verbose information (addresses, linktypes, timestamp types).
  * 
  * regex: If this is non-null, only list devices that match the given regex. 
  */
 void dev_info(const char *regex);
+
+/* Capture packets based on the given filter. If filter is NULL, capture all
+ * packets. Return the number of packets captured.
+ *
+ * filter: If non-NULL, specifies an in-kernel filter ala pcap-filter(7)
+ */
+int capture_live(const char *filter);
+
+/* Capture packets from file based on the given filter. If filter is NULL,
+ * capture all packets. Return the number of packets captured.
+ *
+ * file:   File to capture from, which should not be NULL
+ * filter: If non-NULL, specifies an in-kernel filter ala pcap-filter(7)
+ */
+int capture_from_file(const char *filter, const char *file);
 
 #endif

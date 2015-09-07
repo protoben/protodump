@@ -36,6 +36,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "options.h"
+
 #define NAME   "protodump"
 #define VER    "0.1"
 #define AUTHOR "Ben Hamlin"
@@ -46,5 +48,6 @@ void *malloc_or_die(size_t sz);
 void *realloc_or_die(void *p, size_t sz);
 FILE *fopen_or_die(const char *filename, const char *mode);
 void regcomp_or_die(regex_t *preg, const char *regex, int cflags);
+void plog(int required_verbosity, char *fmt, ...);
 
 #endif

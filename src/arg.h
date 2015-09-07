@@ -33,12 +33,12 @@
 #ifndef PROTODUMP_ARG_H
 #define PROTODUMP_ARG_H
 
-#include <sys/ioctl.h>
 #include <limits.h>
 #include <regex.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 
 #include "common.h"

@@ -36,7 +36,10 @@ static bool regex_matches_or_is_null(const char *regex, const char *test) {
   if(!regex)
     return true;
 
-  err = regcomp(&reg, regex, REG_EXTENDED | REG_NOSUB);
+  char regline[strlen(regex) + 3];
+  sprintf(regline, "^%s$", regex);
+
+  err = regcomp(&reg, regline, REG_EXTENDED | REG_NOSUB);
   if(err) {
     regerror(err, &reg, errbuf, sizeof errbuf);
     die(0, "regcomp(): %s", errbuf);
@@ -152,11 +155,16 @@ static void print_datalinks(const char *dev) {
 
   nlinktypes = pcap_list_datalinks(handle, &linktypes);
   if(nlinktypes > 0)
-    puts("     Linktypes:");
-  for(i = 0; i < nlinktypes; ++i)
-    printf("       %-20s %s\n"
-           , pcap_datalink_val_to_name(linktypes[i])
-           , pcap_datalink_val_to_description(linktypes[i]));
+    printf("     Linktypes:%s", options.verbose > 1 ? "\n" : " ");
+  if(options.verbose > 1)
+    for(i = 0; i < nlinktypes; ++i)
+      printf("       %-20s %s\n"
+             , pcap_datalink_val_to_name(linktypes[i])
+             , pcap_datalink_val_to_description(linktypes[i]));
+  else
+    for(i = 0; i < nlinktypes; ++i)
+      printf("%s%s", pcap_datalink_val_to_name(linktypes[i])
+                   , i + 1 > nlinktypes ? ", " : "\n");
 
   pcap_free_datalinks(linktypes);
   pcap_close(handle);
@@ -174,10 +182,15 @@ static void print_timestamp_types(const char *dev) {
 
   ntstypes = pcap_list_tstamp_types(handle, &tstypes);
   if(ntstypes > 0)
-    puts("     Timestamp types:");
-  for(i = 0; i < ntstypes; ++i)
-    printf("       %-20s %s\n", pcap_tstamp_type_val_to_name(tstypes[i]),
-                                pcap_tstamp_type_val_to_description(tstypes[i]));
+    printf("     Timestamp types:%s", options.verbose > 1 ? "\n" : " ");
+  if(options.verbose > 1)
+    for(i = 0; i < ntstypes; ++i)
+      printf("       %-20s %s\n", pcap_tstamp_type_val_to_name(tstypes[i]),
+                                  pcap_tstamp_type_val_to_description(tstypes[i]));
+  else
+    for(i = 0; i < ntstypes; ++i)
+      printf("%s%s", pcap_tstamp_type_val_to_name(tstypes[i])
+                   , i + 1 > ntstypes ? ", " : "\n");
 
   pcap_free_tstamp_types(tstypes);
   pcap_close(handle);
@@ -212,7 +225,7 @@ void dev_info(const char *regex) {
              , rfmon_ok                      ? "[rfmon_ok]"   : ""
              , capture_ok                    ? "[usable]"     : "[unusable]");
 
-      if(opts.verbose) {
+      if(options.verbose) {
         if(cur->description)
           printf("     %s\n", cur->description);
         if(errbuf[0])
@@ -228,4 +241,113 @@ void dev_info(const char *regex) {
     fprintf(stderr, "No matching devices found\n");
 
   pcap_freealldevs(devs);
+}
+
+static char *match_dev_regex_or_die(const char *regstr) {
+  static char dev[1024];
+  int matches = 0, devlen = 0;
+  char errbuf[PCAP_ERRBUF_SIZE];
+  pcap_if_t *interfaces, *cur;
+  int err;
+
+  err = pcap_findalldevs(&interfaces, errbuf);
+  if(err)
+    die(0, "pcap_findalldevs(): %s", errbuf);
+
+  for(cur = interfaces; cur; cur = cur->next)
+    if(regex_matches_or_is_null(regstr, cur->name))
+      devlen = snprintf(&dev[devlen], sizeof(dev) - devlen
+                        , "%s%s"
+                        , matches++ ? ", " : ""
+                        , cur->name);
+
+  if(!matches)
+    die(0, "No device matching regex: %s", regstr);
+  else if(matches > 1)
+    die(0, "Ambiguous device regex: %s\nDid you mean one of these: %s", regstr, dev);
+
+  pcap_freealldevs(interfaces);
+  return dev;
+}
+
+static void prep_pcap_handle(pcap_t *handle) {
+  int err;
+
+  err = pcap_set_rfmon(handle, options.rfmon);
+  if(err)
+    die(0, "DEBUG: pcap handle should not be activated at %s:%d", __FILE__, __LINE__);
+
+  err = pcap_set_promisc(handle, options.promisc);
+  if(err)
+    die(0, "DEBUG: pcap handle should not be activated at %s:%d", __FILE__, __LINE__);
+
+  err = pcap_set_snaplen(handle, options.snaplen);
+  if(err)
+    die(0, "DEBUG: pcap handle should not be activated at %s:%d", __FILE__, __LINE__);
+
+  err = pcap_set_timeout(handle, options.read_timeout);
+  if(err)
+    die(0, "DEBUG: pcap handle should not be activated at %s:%d", __FILE__, __LINE__);
+
+  if(options.buffer_size > 0) {
+    err = pcap_set_buffer_size(handle, options.buffer_size);
+    if(err)
+      die(0, "DEBUG: pcap handle should not be activated at %s:%d", __FILE__, __LINE__);
+  }
+
+  if(options.tstamp_type != PCAP_ERROR) {
+    err = pcap_set_tstamp_type(handle, options.tstamp_type);
+    if(err == PCAP_ERROR_ACTIVATED)
+      die(0, "DEBUG: pcap handle should not be activated at %s:%d", __FILE__, __LINE__);
+    else if(err == PCAP_ERROR_CANTSET_TSTAMP_TYPE)
+      die(0, "pcap_set_tstamp_type(): Device does not support setting the timestamp");
+    else if(err == PCAP_WARNING_TSTAMP_TYPE_NOTSUP)
+      plog(0, "pcap_set_tstamp_type(): Device does not support specified tstamp type");
+  }
+
+  if(options.tstamp_nano) {
+    err = pcap_set_tstamp_precision(handle, PCAP_TSTAMP_PRECISION_NANO);
+    if(err == PCAP_ERROR_ACTIVATED)
+      die(0, "DEBUG: pcap handle should not be activated at %s:%d", __FILE__, __LINE__);
+    else if(err == PCAP_ERROR_TSTAMP_PRECISION_NOTSUP)
+      die(0, "pcap_set_tstamp_precision(): Device does not support nanosecond precision");
+  }
+
+  if(options.linktype != PCAP_ERROR) {
+    err = pcap_set_datalink(handle, options.linktype);
+    if(err)
+      die(0, "pcap_set_datalink(): %s", pcap_geterr(handle));
+  }
+}
+
+int capture_live(const char *filter) {
+  int err;
+  char errbuf[PCAP_ERRBUF_SIZE];
+  pcap_t *handle;
+  char *dev = options.dev ? match_dev_regex_or_die(options.dev) : "all";
+
+  plog(1, "Capturing on device: %s", dev);
+
+  handle = pcap_create(dev, errbuf);
+  prep_pcap_handle(handle);
+
+  err = pcap_activate(handle);
+  if(err == PCAP_WARNING)
+    plog(0, "pcap_activate(): %s", pcap_geterr(handle));
+  else if(err == PCAP_WARNING_PROMISC_NOTSUP || err == PCAP_WARNING_TSTAMP_TYPE_NOTSUP)
+    plog(0, "pcap_activate(): %s", pcap_geterr(handle));
+  else if(err)
+    die(0, "pcap_activate(): %s", pcap_geterr(handle));
+
+  pcap_close(handle);
+  return 0;
+}
+
+int capture_from_file(const char *filter, const char *file) {
+  if(!file)
+    die(0, "DEBUG: \"file\" should not be NULL at %s:%lu", __FILE__, __LINE__);
+
+  die(0, "Capture from file not yet implemented");
+
+  return 0;
 }

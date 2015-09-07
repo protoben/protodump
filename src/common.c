@@ -89,3 +89,15 @@ void regcomp_or_die(regex_t *preg, const char *regex, int cflags) {
     die(0, "regcomp(\"%s\", %#x): %s", regex, cflags, errbuf);
   }
 }
+
+void plog(int required_verbosity, char *fmt, ...) {
+  va_list ap;
+
+  if(options.verbose >= required_verbosity) {
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+  }
+
+  fputc('\n', stderr);
+}
